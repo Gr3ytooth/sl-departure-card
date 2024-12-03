@@ -9,16 +9,20 @@ class SLDepartureCard extends HTMLElement {
         if (!this.config.tap_action) this.config.tap_action = 'info';
         if (!this.config.tap_action_entity) this.config.tap_action_entity = this.config.entities[0];
         this.config.show_cardname ? this.config.show_cardname = true : this.config.show_cardname = this.config.show_cardname;
-        this.config.compact ? this.config.compact = this.config.compact : this.config.compact = true;
-        if (!this.config.replace) this.config.replace = {};
-        if (!this.config.show_buses) this.config.show_buses = false;
-        if (!this.config.show_trams) this.config.show_trams = false;
-        if (!this.config.show_metros) this.config.show_metros = false;
-        if (!this.config.show_trains) this.config.show_trains = false;
-        if (!this.config.direction) this.config.direction = 0;
-        if (!this.config.number_to_show) this.config.number_to_show = 5;
+//        if (!this.config.show_departures) this.config.show_departures = true;
+//        if (!this.config.show_cancelled) this.config.show_cancelled = true;
+//        if (!this.config.show_last_updated) this.config.show_last_updated = false;
+//        if (!this.config.show_buses) this.config.show_buses = false;
+//        if (!this.config.show_trams) this.config.show_trams = false;
+//        if (!this.config.show_metros) this.config.show_metros = false;
+//        if (!this.config.show_trains) this.config.show_trains = false;
+//        if (!this.config.direction) this.config.direction = 0;
+//        if (!this.config.number_of_departures_to_show) this.config.number_of_departures_to_show = 5;
         if (!this.config.show_lines) this.config.show_lines = [];
-
+//        if (!this.config.show_departure_deviations) this.config.show_departure_deviations = false;
+//        if (!this.config.number_of_departure_deviations_lines) this.config.number_of_departure_deviations_lines = 3;
+//        if (!this.config.show_site_deviations) this.config.show_site_deviations = false;
+//        if (!this.config.number_of_site_deviations) this.config.number_f_site_deviations = 10;
     }
 
     set hass(hass) {
@@ -39,12 +43,6 @@ class SLDepartureCard extends HTMLElement {
         const config = this.config;
         const lang = this._lang();
 
-        var replace_names = [];
-        for(var i in config['replace']) {
-            for(var j in config['replace'][i]) {
-                replace_names[j] = config['replace'][i][j];
-            }
-        }
 
         function getEntitiesContent(data) {
             var html = ``;
@@ -87,7 +85,7 @@ class SLDepartureCard extends HTMLElement {
                     html += "<table class=\"sl-table\">"
 
                     // Departures
-                    if (config.departures === true) 
+                    if (config.show_departures === true) 
                     {
                         if (config.header === true) 
                         {
@@ -105,14 +103,11 @@ class SLDepartureCard extends HTMLElement {
                         {
 
                             var offset_j = 0;
-
                             for (var j = 0; j < entity_data.attributes.departures.length; j++) 
                             {
-    
                                 var lineNumber = entity_data.attributes.departures[j].line.designation;
                                 var groupOfLine = entity_data.attributes.departures[j].line.groupofline;
                                 var haIcon = "tom text";
-
                                 var typeClass = '';
 
                                 switch (entity_data.attributes.departures[j].line.transport_mode) 
@@ -160,18 +155,22 @@ class SLDepartureCard extends HTMLElement {
                                 var spanClass = 'line-icon' + typeClass;
 
                                 if ( 
-                                    (entity_data.attributes.departures[j].line.transport_mode === 'BUS' && config.show_buses === true) || 
+                                    ((entity_data.attributes.departures[j].line.transport_mode === 'BUS' && config.show_buses === true) || 
                                     (entity_data.attributes.departures[j].line.transport_mode === 'TRAM' && config.show_trams === true) || 
                                     (entity_data.attributes.departures[j].line.transport_mode === 'METRO' && config.show_metros === true) || 
-                                    (entity_data.attributes.departures[j].line.transport_mode === 'TRAIN' && config.show_trains === true) ) 
+                                    (entity_data.attributes.departures[j].line.transport_mode === 'TRAIN' && config.show_trains === true)) &&
+                                    ((entity_data.attributes.departures[j].journey.state != "CANCELLED" && entity_data.attributes.departures[j].state != "CANCELLED") || 
+                                     ((entity_data.attributes.departures[j].journey.state === "CANCELLED" || entity_data.attributes.departures[j].state === "CANCELLED") && config.show_cancelled === true)) 
+                                    ) 
                                 {
-                                        if (config.direction === 0 || config.direction === '0' || entity_data.attributes.departures[j].direction_code === config.direction ) 
+                                    if (config.direction === 0 || config.direction === '0' || entity_data.attributes.departures[j].direction_code === config.direction ) 
+                                    {
+                                        var k = 0;
+                                        do
                                         {
-/*
-                                            if (config.show_lines.length === 0)
+                                            if ( config.show_lines[k] === entity_data.attributes.departures[j].line.designation || config.show_lines.length === 0)
                                             {
                                                 offset_j++;
-
                                                 html += `
                                                     <tr>
                                                         <td class="col1 ${config.compact === false ? 'loose-icon' : ''}"><ha-icon icon="mdi:${haIcon}"></ha-icon></td>
@@ -179,249 +178,68 @@ class SLDepartureCard extends HTMLElement {
                                                         <td class="col3 ${config.compact === false ? 'loose-cell' : ''}">${entity_data.attributes.departures[j].display}</td>
                                                     </tr>
                                                 `
-                                            }
-                                            else 
-                                            {
-*/                                            
-                                                var h = 0;
-                                                do
-//                                                for (var h = 0; h < config.show_lines.length; h++) 
+                                                
+                                                if ( config.show_departure_deviations === true && entity_data.attributes.departures[j].deviations.length != 0 )
                                                 {
-                                                    if ( config.show_lines[h] === entity_data.attributes.departures[j].line.designation || config.show_lines.length === 0)
+                                                    var offset_l = 0;
+                                                    for (var l = 0; l < entity_data.attributes.departures[j].deviations.length; l++)
                                                     {
-
-                                                        offset_j++;
-
+                                                        offset_l++;
                                                         html += `
                                                             <tr>
-                                                                <td class="col1 ${config.compact === false ? 'loose-icon' : ''}"><ha-icon icon="mdi:${haIcon}"></ha-icon></td>
-                                                                <td class="col2 ${config.compact === false ? 'loose-cell loose-padding' : ''}"><span class="${spanClass}">${entity_data.attributes.departures[j].line.designation}</span> ${entity_data.attributes.departures[j].destination}</td>
-                                                                <td class="col3 ${config.compact === false ? 'loose-cell' : ''}">${entity_data.attributes.departures[j].display}</td>
+                                                                <td></td>
+                                                                <td colspan=2>
+                                                                    
+                                                                    <ha-icon class="${entity_data.attributes.departures[j].deviations[l].consequence === "CANCELLED" ? 'alert' : ' '}" icon="mdi:${entity_data.attributes.departures[j].deviations[l].consequence === "CANCELLED" ? 'alert-outline' : 'information'}"></ha-icon> 
+                                                                    ${entity_data.attributes.departures[j].deviations[l].message}
+                                                                    </td>
                                                             </tr>
                                                         `
+
+                                                        if( config.number_of_departure_deviations_lines === offset_l)
+                                                        {
+                                                            break;
+                                                        }
                                                     }
-                                                h++;
-                                                } while (h < config.show_lines.length) 
-//                                            }
-/*
-                                                if( config.show_lines === 0)
-                                                {
-                                                    break;
                                                 }
-*/
-                                        }
-
-                                    
+                                            }
+                                            k++;
+                                        } while (k < config.show_lines.length) 
+                                    }
                                 }
 
-                                if (offset_j >= config.number_to_show) 
+                                if (offset_j >= config.number_of_departures_to_show) 
                                 {
                                     break;
                                 }
                             }
                         }
-
-
-/*
-                        if (typeof entity_data.attributes.departures !== 'undefined') 
-                        {
-
-
-                            var maxDepartures = entity_data.attributes.departures.length;
-
-                            if (config.max_departures && maxDepartures > config.max_departures ) 
-                            {
-                                maxDepartures = config.max_departures;
-                            }
-                            var offset_i = 0;
-
-
-                            var offset_j = 0;
-
-
-                            for (var j = 0; j < entity_data.attributes.departures.length; j++) 
-                            {
-                                
-                                var departureInMinutes = entity_data.attributes.departures[j].time - minutesSinceUpdate;
-
-                              
-                                var expectedTime = new Date(entity_data.attributes.departures[j].expected);
-
-                                var departureTime = expectedTime.toLocaleTimeString(culture, {hour: "numeric", minute: "numeric"})
-
-                                if (config.timeleft === true) 
-                                {
-                                    if (config.adjust_times === true) 
-                                    {
-                                        if (minutesSinceUpdate > 0) 
-                                        {
-                                            if (departureInMinutes > 0) 
-                                            {
-                                                departureInMinutes = "" + departureInMinutes + " " + lang[culture].min;
-                                                if (config.always_show_time === true) 
-                                                {
-                                                    departureInMinutes += " (" + departureTime + ")";
-                                                }
-                                            }
-                                            else if (departureInMinutes === 0) 
-                                            {
-                                                departureInMinutes = lang[culture].now;
-                                            }
-                                            else if (departureInMinutes < 0) 
-                                            {
-                                                departureInMinutes = lang[culture].departed;
-                                            }
-                                        }
-                                        else 
-                                        {
-                                            departureInMinutes = "" + departureInMinutes + " " + lang[culture].min;
-                                        }
-                                    }
-                                    else 
-                                    {
-                                        departureInMinutes = "" + entity_data.attributes.departures[j].time + " " + lang[culture].min;
-                                        if (config.always_show_time === true) 
-                                        {
-                                            departureInMinutes += " (" + departureTime + ")";
-                                        }
-                                    }
-                                }
-
-                                var lineNumber = entity_data.attributes.departures[j].line.designation;
-                                var groupOfLine = entity_data.attributes.departures[j].line.groupofline;
-
-                                var typeClass = '';
-
-                                switch (entity_data.attributes.departures[j].line.transport_type) 
-                                {
-                                    case 'BUS':
-                                        switch(groupOfLine) 
-                                        {
-                                            case 'blåbuss':
-                                                typeClass = ' ' + 'bus_blue bus_blue_' + lineNumber;
-                                                break;
-                                            default:
-                                                typeClass = ' ' + 'bus_red bus_red_' + lineNumber;
-                                        }
-                                        break;
-                                    case 'TRAM':
-                                        typeClass = ' ' + 'trm trm_' + lineNumber;
-                                        break;
-                                    case 'METRO':
-                                        switch (lineNumber) 
-                                        {
-                                            case '10':
-                                            case '11':
-                                                typeClass = ' ' + 'met_blue met_blue_' + lineNumber;;
-                                                break;
-                                            case '13':
-                                            case '14':
-                                                typeClass = ' ' + 'met_red met_red_' + lineNumber;
-                                                break;
-                                            case '17':
-                                            case '18':
-                                            case '19':
-                                                typeClass = ' ' + 'met_green met_green_' + lineNumber;
-                                                break;
-                                        }
-                                        break;
-                                    case 'TRAIN':
-                                        typeClass = ' ' + 'trn trn_' + lineNumber;
-                                        break;
-                                }
-
-                                var destinationName = entity_data.attributes.departures[j].destination;
-                                if (replace_names[destinationName]) 
-                                {
-                                    destinationName = replace_names[destinationName];
-                                }
-
-                                var spanClass = 'line-icon' + typeClass;
-
-
-
-                                if ( 
-                                    (entity_data.attributes.departures[j].type === 'BUS' && config.show_buses === true) || 
-                                    (entity_data.attributes.departures[j].type === 'TRAM' && config.show_trams === true) || 
-                                    (entity_data.attributes.departures[j].type === 'METRO' && config.show_metros === true) || 
-                                    (entity_data.attributes.departures[j].type === 'TRAIN' && config.show_trains === true) ) 
-                                    {
-                                        if(config.direction === 0 || config.direction === '0' || entity_data.attributes.departures[j].direction_code === config.direction ) 
-                                        {
-
-                                            offset_j++;
-
-                                            if ( entity_data.attributes.departures[j].line.transport_type === 'METRO' )
-                                            {
-                                                html += 
-                                                `
-                                                <tr>
-                                                    <td class="col1 ${config.compact === false ? 'loose-icon' : ''}"><ha-icon icon="mdi:subway"></ha-icon></td>
-                                                    <td class="col2 ${config.compact === false ? 'loose-cell loose-padding' : ''}"><span class="${spanClass}">${entity_data.attributes.departures[j].line.designation}</span> ${entity_data.attributes.departures[j].destination}</td>
-                                                    <td class="col3 ${config.compact === false ? 'loose-cell' : ''}">${entity_data.attributes.departures[j].display}</td>
-                                                </tr>
-                                                `
-                                            }
-                                            else
-                                            {
-                                                html += 
-                                                `
-                                                <tr>
-                                                    <td class="col1 ${config.compact === false ? 'loose-icon' : ''}"><ha-icon icon="mdi:subway"></ha-icon></td>
-                                                    <td class="col2 ${config.compact === false ? 'loose-cell loose-padding' : ''}"><span class="${spanClass}">${entity_data.attributes.departures[j].line.designation}</span> ${entity_data.attributes.departures[j].destination}</td>
-                                                    <td class="col3 ${config.compact === false ? 'loose-cell' : ''}">${entity_data.attributes.departures[j].display}</td>
-                                                </tr>
-                                                `
-                                            }
-
-
-                                        }
-                                    }
-
-                                if (offset_i >= maxDepartures) {
-                                if (offset_j >= config.number_to_show) 
-                                {
-                                    break;
-                                }
-                            }
-                        }
-
-*/
-
                         html += `</table>`;
                     }
 
                     // Devations
-                    if (config.deviations === true) 
+                    if (config.show_site_deviations === true) 
                     {
-                        if (typeof entity_data.attributes.deviations !== 'undefined') 
+                        if (typeof entity_data.attributes.stop_deviations !== 'undefined') 
                         {
-                            var maxDeviations = entity_data.attributes.deviations.length;
-
-                            if (config.max_deviations && maxDeviations > config.max_deviations) 
-                            {
-                                maxDeviations = config.max_deviations;
-                            }
-
                             html += `<table>`;
 
-                            for (var k = 0; k < maxDeviations; k++) 
+                            var offset_i = 0;
+                            for (var i = 0; i < entity_data.attributes.stop_deviations.length; i++) 
                             {
-                                if (config.compact === false) 
-                                {
-                                    html += `
-                                        <tr>
-                                            <td align="left">&nbsp;</td>
-                                        </tr>
-                                    `
-                                }
-
+                                offset_i++;
                                 html += `
                                     <tr>
-                                        <td class="col1 ${config.compact === false ? 'loose-icon' : ''}" valign="top"><ha-icon class="alert" icon="mdi:alert-outline"></td>
-                                        <td class="col2 ${config.compact === false ? 'loose-cell' : ''}"><b>${entity_data.attributes.deviations[k].title}</b><br/><i>${entity_data.attributes.deviations[k].details}</i></td>
+                                        <td class="col1" valign="top"><ha-icon class="alert" icon="mdi:alert-outline"></td>
+                                        <td class="col2"><b>${entity_data.attributes.stop_deviations[i].message}</b></td>
                                     </tr>
                                 `
+
+                                if (offset_i >= config.number_of_site_deviations) 
+                                {
+                                    break;
+                                }
+
                             }
 
                             html += `</table>`;
@@ -430,14 +248,11 @@ class SLDepartureCard extends HTMLElement {
 
                     
                     // Updated
-                    if (config.updated === true) 
+                    if (config.show_last_updated === true) 
                     {
-                        if (config.updated_minutes==0 || config.updated_minutes < minutesSinceUpdate ) 
-                        {
-                            html += `<table><tr>
-                                    <td class="last-update"><sub><i>${lang[culture].last_updated} ${updatedValue}</i></sub></td>
-                                </tr></table>`;
-                        }
+                        html += `<table><tr>
+                                <td class="last-update"><sub><i>${lang[culture].last_updated} ${updatedValue}</i></sub></td>
+                            </tr></table>`;
                     }
 
                 }
@@ -509,6 +324,15 @@ class SLDepartureCard extends HTMLElement {
                 height: 24px;
                 color: var(--paper-item-icon-color);
             }
+
+            title-icon {
+                transition: color 0.3s ease-in-out, filter 0.3s ease-in-out;
+                width: 40px;
+                height: 40px;
+                color: var(--paper-item-icon-color);
+            }
+
+
 
             ha-icon.alert {
                 color: red;
@@ -631,16 +455,6 @@ class SLDepartureCard extends HTMLElement {
                 last_updated: 'Last updated ',
                 now: 'Now',
                 departed: 'Departed',
-            },
-            'fr-FR': {
-                entity_missing: 'Aucune info trouv&eacute;e',
-                line: 'FNy',
-                destination: 'version',
-                departure: '30',
-                min: 'min',
-                last_updated: 'Mis à jour ',
-                now: 'Maintenant ',
-                departed: 'Parti ',
             }
         }
     }
